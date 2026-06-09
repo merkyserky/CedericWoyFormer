@@ -2,15 +2,7 @@ name = "cedericwoyformer"
 compatibility_date = "2026-06-09"
 pages_build_output_dir = "dist"
 
-[[kv_namespaces]]
-binding = "LEVELS_KV"
-id = "YOUR_KV_NAMESPACE_ID_HERE"
-
-[durable_objects]
-bindings = [
-  { name = "MULTIPLAYER_ROOM", class_name = "MultiplayerRoom" }
-]
-
-[[migrations]]
-tag = "v1"
-new_classes = ["MultiplayerRoom"]
+[[durable_objects.bindings]]
+name = "MULTIPLAYER_ROOM"
+class_name = "MultiplayerRoom"
+script_name = "cederic-woy-former-worker"
