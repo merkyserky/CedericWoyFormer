@@ -58,9 +58,20 @@
     <div id="level-select-menu" class="screen">
       <div class="menu-content glass-card">
         <h2 class="screen-title">SELECT ZONE</h2>
+        
+        <div class="level-select-tabs">
+          <button id="tab-campaign-btn" class="tab-btn active">CAMPAIGN</button>
+          <button id="tab-community-btn" class="tab-btn">COMMUNITY LEVELS</button>
+        </div>
+        
         <div class="level-grid" id="level-buttons-grid">
           <!-- Populated by JS -->
         </div>
+
+        <div class="level-grid hidden" id="community-levels-grid">
+          <div class="loading-spinner">Loading levels...</div>
+        </div>
+        
         <button id="back-to-menu-from-levels" class="btn btn-secondary back-btn">BACK</button>
       </div>
     </div>
@@ -301,6 +312,7 @@
               <button id="editor-clear-btn" class="btn btn-secondary" title="Reset map to empty bounds">CLEAR MAP</button>
               <button id="editor-export-btn" class="btn btn-secondary" title="Export level configuration to JSON">EXPORT JSON</button>
               <button id="editor-import-btn" class="btn btn-secondary" title="Import level configuration from JSON">IMPORT JSON</button>
+              <button id="editor-upload-btn" class="btn btn-primary" title="Upload level to Cloudflare Community">UPLOAD TO COMMUNITY</button>
             </div>
             
             <div class="json-area-container">

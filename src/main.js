@@ -185,6 +185,81 @@ document.getElementById('victory-exit-btn').addEventListener('click', () => {
   game.setGameState('MENU');
 });
 
+// Campaign & Community Level Tab Switching and Fetching Logic
+const campaignTabBtn = document.getElementById('tab-campaign-btn');
+const communityTabBtn = document.getElementById('tab-community-btn');
+const campaignGrid = document.getElementById('level-buttons-grid');
+const communityGrid = document.getElementById('community-levels-grid');
+
+// Save to local storage custom worker URL if overridden, or default
+const DEFAULT_WORKER_URL = 'https://cederic-woy-former-worker.venne.workers.dev';
+const WORKER_URL = localStorage.getItem('cederic_custom_worker_url') || DEFAULT_WORKER_URL;
+
+if (campaignTabBtn && communityTabBtn) {
+  campaignTabBtn.addEventListener('click', () => {
+    campaignTabBtn.classList.add('active');
+    communityTabBtn.classList.remove('active');
+    campaignGrid.classList.remove('hidden');
+    communityGrid.classList.add('hidden');
+  });
+
+  communityTabBtn.addEventListener('click', () => {
+    communityTabBtn.classList.add('active');
+    campaignTabBtn.classList.remove('active');
+    campaignGrid.classList.add('hidden');
+    communityGrid.classList.remove('hidden');
+    loadCommunityLevels();
+  });
+}
+
+async function loadCommunityLevels() {
+  communityGrid.innerHTML = '<div class="loading-spinner">FETCHING DATA STREAM...</div>';
+  try {
+    const res = await fetch(`${WORKER_URL}/api/levels`);
+    if (!res.ok) throw new Error(`HTTP error: ${res.status}`);
+    const levels = await res.json();
+    
+    if (levels.length === 0) {
+      communityGrid.innerHTML = '<div class="loading-spinner">NO COMMUNITY MAPS FOUND. CREATE ONE!</div>';
+      return;
+    }
+    
+    communityGrid.innerHTML = '';
+    levels.forEach((lvl) => {
+      const card = document.createElement('div');
+      card.className = 'level-card community-card';
+      card.innerHTML = `
+        <span class="lvl-num">★</span>
+        <span class="lvl-title">${lvl.name.split(' ')[0]}</span>
+        <span class="lvl-author">BY ${lvl.author.toUpperCase()}</span>
+      `;
+      
+      card.addEventListener('click', async () => {
+        audio.init();
+        card.innerHTML = '<span class="lvl-author">LOADING...</span>';
+        try {
+          const detailRes = await fetch(`${WORKER_URL}/api/levels/${lvl.id}`);
+          if (!detailRes.ok) throw new Error("Could not download level details.");
+          const levelData = await detailRes.json();
+          
+          game.triggerLevelTransition(() => {
+            game.loadCustomLevel(levelData);
+            game.setGameState('PLAYING');
+          });
+        } catch (err) {
+          alert(`Download failed: ${err.message}`);
+          loadCommunityLevels(); // refresh
+        }
+      });
+      
+      communityGrid.appendChild(card);
+    });
+  } catch (err) {
+    console.error("Worker fetch error:", err);
+    communityGrid.innerHTML = `<div class="loading-spinner" style="color: #ff0055">CANT CONNECT TO CF WORKER<br><span style="font-size: 0.5rem; opacity: 0.7; display: block; margin-top: 5px;">${err.message}</span></div>`;
+  }
+}
+
 // Main Loop ticker
 let lastTime = performance.now();
 function gameLoop(time) {

@@ -2107,6 +2107,11 @@ export class GameEngine {
 
   // Main Drawing Function
   draw() {
+    // Performance: Avoid rendering the main game canvas when screens are overlayed
+    if (this.gameState === 'MENU' || this.gameState === 'LEVEL_EDITOR' || this.gameState === 'LEVEL_SELECT' || this.gameState === 'HOW_TO_PLAY') {
+      return;
+    }
+
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     
     // Guard against rendering before a level is loaded

@@ -905,6 +905,59 @@ export function setupEditor(game) {
     updateSelectionUI();
   }
 
+  // Upload Custom Level to Cloudflare Worker
+  async function uploadCustomLevel() {
+    const levelData = exportLevelData(false);
+    
+    const levelName = prompt("Enter Level Name:", levelData.name || "My Custom Level");
+    if (levelName === null) return; // cancel
+    if (!levelName.trim()) {
+      alert("Level name cannot be empty!");
+      return;
+    }
+    
+    const authorName = prompt("Enter Author Name:", "Anonymous");
+    if (authorName === null) return; // cancel
+    
+    const finalLevelData = {
+      ...levelData,
+      name: levelName.trim(),
+      author: authorName.trim() || "Anonymous"
+    };
+    
+    // Save to local storage custom worker URL if overridden, or default
+    const DEFAULT_WORKER_URL = 'https://cederic-woy-former-worker.venne.workers.dev';
+    const WORKER_URL = localStorage.getItem('cederic_custom_worker_url') || DEFAULT_WORKER_URL;
+    
+    const uploadBtn = document.getElementById('editor-upload-btn');
+    const originalText = uploadBtn.innerText;
+    uploadBtn.innerText = "UPLOADING...";
+    uploadBtn.disabled = true;
+    
+    try {
+      const res = await fetch(`${WORKER_URL}/api/levels`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(finalLevelData)
+      });
+      
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `HTTP error ${res.status}`);
+      }
+      
+      const resData = await res.json();
+      alert(`Success! Level uploaded to Cloudflare Community.\nID: ${resData.id}`);
+    } catch (e) {
+      alert(`Upload failed: ${e.message}`);
+    } finally {
+      uploadBtn.innerText = originalText;
+      uploadBtn.disabled = false;
+    }
+  }
+
   // DOM Button Trigger Listeners
   document.getElementById('editor-clear-btn').addEventListener('click', clearGrid);
   document.getElementById('editor-export-btn').addEventListener('click', () => exportLevelData(true));
@@ -912,6 +965,7 @@ export function setupEditor(game) {
   document.getElementById('editor-undo-btn').addEventListener('click', undo);
   document.getElementById('editor-redo-btn').addEventListener('click', redo);
   document.getElementById('editor-fill-btn').addEventListener('click', fillGrid);
+  document.getElementById('editor-upload-btn').addEventListener('click', uploadCustomLevel);
   if (rotateBtn) rotateBtn.addEventListener('click', () => {
     if (selectedCell) {
       saveHistory(); // Save history before rotation

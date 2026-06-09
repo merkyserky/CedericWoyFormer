@@ -60,20 +60,27 @@ class Particle {
     // Draw glowing circles or squares
     const isGlowing = this.type === 'coin' || this.type === 'hazard' || this.type === 'portal' || this.type === 'electricity' || this.type === 'shield' || this.type === 'teleport';
     
-    if (isGlowing) {
-      // Draw outer soft glow circle
-      ctx.globalAlpha = alpha * 0.35;
+    if (this.type === 'dust' || this.type === 'hazard' || this.type === 'electricity') {
+      // Performance optimization: Render fast retro square block particles instead of arcs
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = this.color;
+      ctx.fillRect(this.x - this.size, this.y - this.size, this.size * 2, this.size * 2);
+    } else {
+      if (isGlowing) {
+        // Draw outer soft glow circle
+        ctx.globalAlpha = alpha * 0.35;
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size * 2.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      
+      ctx.globalAlpha = alpha;
       ctx.fillStyle = this.color;
       ctx.beginPath();
-      ctx.arc(this.x, this.y, this.size * 2.2, 0, Math.PI * 2);
+      ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
       ctx.fill();
     }
-    
-    ctx.globalAlpha = alpha;
-    ctx.fillStyle = this.color;
-    ctx.beginPath();
-    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-    ctx.fill();
   }
 }
 
@@ -172,6 +179,11 @@ export class ParticleSystem {
   }
 
   update(dt) {
+    // Performance optimization: limit max particle array length to prevent memory/render drops
+    if (this.particles.length > 250) {
+      this.particles.splice(0, this.particles.length - 250);
+    }
+
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i];
       p.update(dt);
