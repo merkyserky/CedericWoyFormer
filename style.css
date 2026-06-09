@@ -1643,4 +1643,8 @@ body::before {
   box-shadow: 0 0 15px rgba(255, 170, 0, 0.4);
 }
 
+.hidden {
+  display: none !important;
+}
+
 
