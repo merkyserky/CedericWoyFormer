@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CedericWoyFormer - Cyber Neon Platformer</title>
+  <meta name="description" content="Help Cederic navigate neon platforms, dodge hazard spikes, collect cyber-coins, and jump into portals in this retro neon platformer game.">
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <!-- CRT Scanline Effect Overlay -->
+  <div class="crt-overlay"></div>
+  <div id="level-transition-overlay" class="transition-overlay"></div>
+
+  <!-- Game Container -->
+  <div id="app-container">
+    <!-- Main Menu Screen -->
+    <div id="main-menu" class="screen active">
+      <div class="menu-content glass-card">
+        <h1 class="game-title">CEDERIC<br><span class="title-sub">WOY-FORMER</span></h1>
+        
+        <div class="character-preview-container">
+          <div class="avatar-glow"></div>
+          <img id="menu-avatar" src="./character.jpg" alt="Cederic Avatar" class="menu-avatar">
+        </div>
+        
+        <!-- Sex Selection UI -->
+        <div class="sex-selector-container">
+          <span class="sex-selector-label">SEX:</span>
+          <button class="btn-sex active" data-sex="male">MALE</button>
+          <button class="btn-sex" data-sex="female">FEMALE</button>
+          <button class="btn-sex" data-sex="cyber">CYBER</button>
+        </div>
+        
+        <div class="menu-buttons">
+          <button id="start-game-btn" class="btn btn-primary">
+            <span class="btn-text">PLAY GAME</span>
+            <span class="btn-glow"></span>
+          </button>
+          <button id="level-select-btn" class="btn btn-secondary">LEVELS</button>
+          <button id="how-to-play-btn" class="btn btn-secondary">CONTROLS</button>
+          <button id="level-editor-btn" class="btn btn-secondary">LEVEL EDITOR</button>
+        </div>
+        
+        <div class="sound-toggle-container">
+          <button id="sound-toggle" class="btn-icon">
+            <span id="sound-icon">🔊</span> Music & SFX: ON
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Level Select Screen -->
+    <div id="level-select-menu" class="screen">
+      <div class="menu-content glass-card">
+        <h2 class="screen-title">SELECT ZONE</h2>
+        <div class="level-grid" id="level-buttons-grid">
+          <!-- Populated by JS -->
+        </div>
+        <button id="back-to-menu-from-levels" class="btn btn-secondary back-btn">BACK</button>
+      </div>
+    </div>
+
+    <!-- How to Play Screen -->
+    <div id="how-to-play-menu" class="screen">
+      <div class="menu-content glass-card">
+        <h2 class="screen-title">CYBER SYSTEM CONTROLS</h2>
+        <div class="controls-guide">
+          <div class="control-row">
+            <span class="key">A</span> / <span class="key">D</span> or <span class="key">←</span> / <span class="key">→</span>
+            <span class="control-desc">MOVE LEFT / RIGHT</span>
+          </div>
+          <div class="control-row">
+            <span class="key">W</span> or <span class="key">↑</span> or <span class="key">SPACE</span>
+            <span class="control-desc">JUMP / DOUBLE JUMP</span>
+          </div>
+          <div class="control-row">
+            <span class="key">SHIFT</span> or <span class="key">K</span>
+            <span class="control-desc">CYBER DASH (AIR DASH AVAILABLE)</span>
+          </div>
+          <div class="control-row">
+            <span class="key">R</span>
+            <span class="control-desc">RESTART CURRENT LEVEL</span>
+          </div>
+          <div class="control-row">
+            <span class="key">ESC</span> / <span class="key">P</span>
+            <span class="control-desc">PAUSE SYSTEM</span>
+          </div>
+        </div>
+        <button id="back-to-menu-from-how" class="btn btn-secondary back-btn">BACK</button>
+      </div>
+    </div>
+
+    <!-- Pause Screen Overlay -->
+    <div id="pause-screen" class="screen">
+      <div class="menu-content glass-card small-card">
+        <h2 class="screen-title neon-pulse">SYSTEM PAUSED</h2>
+        <div class="menu-buttons">
+          <button id="resume-btn" class="btn btn-primary">RESUME</button>
+          <button id="restart-level-btn" class="btn btn-secondary">RESTART LEVEL</button>
+          <button id="exit-to-menu-btn" class="btn btn-secondary">EXIT TO MENU</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="game-over-screen" class="screen">
+      <div class="menu-content glass-card error-card">
+        <h2 class="screen-title text-danger">SYSTEM CRITICAL</h2>
+        <p class="death-message">Cederic got digitized by security protocols!</p>
+        <div class="menu-buttons">
+          <button id="retry-btn" class="btn btn-primary">RETRY SECTOR</button>
+          <button id="game-over-exit-btn" class="btn btn-secondary">MAIN MENU</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Level Complete Screen -->
+    <div id="level-complete-screen" class="screen">
+      <div class="menu-content glass-card success-card">
+        <h2 class="screen-title text-success">SECTOR CLEARED</h2>
+        <div class="stats-panel">
+          <div class="stat-item">
+            <span class="stat-label">Coins Retrieved:</span>
+            <span id="complete-coins" class="stat-value">0/0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Completed In:</span>
+            <span id="complete-time" class="stat-value">0.0s</span>
+          </div>
+        </div>
+        <div class="menu-buttons">
+          <button id="next-level-btn" class="btn btn-primary">NEXT SECTOR</button>
+          <button id="level-comp-exit-btn" class="btn btn-secondary">MAIN MENU</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Victory / Game Complete Screen -->
+    <div id="victory-screen" class="screen">
+      <div class="menu-content glass-card victory-card">
+        <h1 class="victory-title neon-rainbow">CYBER MASTER</h1>
+        <p class="victory-subtitle">Cederic successfully compiled and escaped the mainframe!</p>
+        
+        <div class="victory-avatar-container">
+          <div class="victory-glow"></div>
+          <img src="./character.jpg" alt="Victory Cederic" class="victory-avatar">
+        </div>
+
+        <div class="stats-panel">
+          <div class="stat-item">
+            <span class="stat-label">Total Coins:</span>
+            <span id="victory-total-coins" class="stat-value">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Total Deaths:</span>
+            <span id="victory-total-deaths" class="stat-value">0</span>
+          </div>
+        </div>
+        <button id="victory-exit-btn" class="btn btn-primary">CREDITS & MENU</button>
+      </div>
+    </div>
+
+    <!-- Level Editor Screen -->
+    <div id="level-editor-screen" class="screen">
+      <div class="menu-content glass-card large-editor-card">
+        <h2 class="screen-title">LEVEL EDITOR</h2>
+        
+        <div class="editor-workspace">
+          <!-- Left Panel: Grid Canvas -->
+          <div class="editor-left">
+            <div class="editor-grid-wrapper">
+              <canvas id="editor-canvas" width="1000" height="600"></canvas>
+            </div>
+          </div>
+          
+          <!-- Right Panel: Tools and Settings -->
+          <div class="editor-right-panel">
+            <div class="editor-settings-group">
+              <div class="setting-item">
+                <label for="editor-lvl-name">Zone Name:</label>
+                <input type="text" id="editor-lvl-name" value="CUSTOM ZONE" maxlength="20">
+              </div>
+              <div class="setting-item">
+                <label for="editor-lvl-theme">Theme:</label>
+                <select id="editor-lvl-theme">
+                  <option value="1">Sector 1 (Neon Blue)</option>
+                  <option value="2">Sector 2 (Synth Purple)</option>
+                  <option value="3">Sector 3 (Cyber Green)</option>
+                  <option value="4">Sector 4 (Amber Gold)</option>
+                  <option value="5">Sector 5 (Crimson Boss)</option>
+                </select>
+              </div>
+            </div>
+            
+            <div class="editor-settings-group">
+              <div class="setting-item">
+                <label for="editor-lvl-width" title="Level Map Columns Count">Width (Cells):</label>
+                <input type="number" id="editor-lvl-width" value="25" min="15" max="100" step="1">
+              </div>
+              <div class="setting-item">
+                <label for="editor-lvl-height" title="Level Map Rows Count">Height (Cells):</label>
+                <input type="number" id="editor-lvl-height" value="15" min="10" max="30" step="1">
+              </div>
+            </div>
+
+            <div class="editor-color-group">
+              <div class="color-item">
+                <label for="editor-primary-color" title="Neon Border/Accent Color">Neon Border:</label>
+                <input type="color" id="editor-primary-color" value="#00f2fe">
+              </div>
+              <div class="color-item">
+                <label for="editor-secondary-color" title="Block Fill Color">Block Fill:</label>
+                <input type="color" id="editor-secondary-color" value="#00f2fe">
+              </div>
+              <div class="color-item">
+                <label for="editor-grid-color" title="Background Grid Line Color">Grid Lines:</label>
+                <input type="color" id="editor-grid-color" value="#00f2fe">
+              </div>
+            </div>
+
+            <div class="selection-control-group">
+              <div class="selection-info">
+                <div class="selection-detail"><span class="info-lbl">Selected:</span> <span id="editor-selection-coords" class="info-val">Row 12, Col 2</span></div>
+                <div class="selection-detail"><span class="info-lbl">Object:</span> <span id="editor-selection-tile" class="info-val">Spawn (👊)</span></div>
+              </div>
+              <button id="editor-rotate-btn" class="btn btn-primary" title="Rotate Selected Object (Hotkey: R)">🔄 ROTATE OBJECT (R)</button>
+            </div>
+            
+            <div class="brush-palette-container">
+              <label>Select Tile Brush:</label>
+              <div class="brush-palette">
+                <div class="brush-item active" data-tile="#" title="Solid Wall">
+                  <span class="brush-icon">🧱</span>
+                  <span class="brush-name">Wall</span>
+                </div>
+                <div class="brush-item" data-tile="I" title="Slippery Ice">
+                  <span class="brush-icon">❄️</span>
+                  <span class="brush-name">Ice</span>
+                </div>
+                <div class="brush-item" data-tile="D" title="Destructible Wall">
+                  <span class="brush-icon">💥</span>
+                  <span class="brush-name">Destruct</span>
+                </div>
+                <div class="brush-item" data-tile="_" title="Semi-Solid Platform">
+                  <span class="brush-icon">➖</span>
+                  <span class="brush-name">Platform</span>
+                </div>
+                <div class="brush-item" data-tile="^" title="Spike (Use Rotate to direct)">
+                  <span class="brush-icon">▲</span>
+                  <span class="brush-name">Spike</span>
+                </div>
+                <div class="brush-item" data-tile="B" title="Bounce Pad">
+                  <span class="brush-icon">🟢</span>
+                  <span class="brush-name">Bounce</span>
+                </div>
+                <div class="brush-item" data-tile="*" title="Cyber Coin">
+                  <span class="brush-icon">💎</span>
+                  <span class="brush-name">Coin</span>
+                </div>
+                <div class="brush-item" data-tile="G" title="Cyber Blaster">
+                  <span class="brush-icon">🔫</span>
+                  <span class="brush-name">Blaster</span>
+                </div>
+                <div class="brush-item" data-tile="M" title="Security Drone Monster">
+                  <span class="brush-icon">👾</span>
+                  <span class="brush-name">Drone</span>
+                </div>
+                <div class="brush-item" data-tile="V" title="Beaver Enemy">
+                  <span class="brush-icon">🦫</span>
+                  <span class="brush-name">Beaver</span>
+                </div>
+                <div class="brush-item" data-tile="K" title="Kangaroo Enemy">
+                  <span class="brush-icon">🦘</span>
+                  <span class="brush-name">Kangaroo</span>
+                </div>
+                <div class="brush-item" data-tile="P" title="Player Spawn Point">
+                  <span class="brush-icon">👊</span>
+                  <span class="brush-name">Spawn</span>
+                </div>
+                <div class="brush-item" data-tile="E" title="Exit Portal">
+                  <span class="brush-icon">🌀</span>
+                  <span class="brush-name">Exit</span>
+                </div>
+                <div class="brush-item" data-tile=" " title="Eraser (Clear cell)">
+                  <span class="brush-icon">❌</span>
+                  <span class="brush-name">Eraser</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="editor-buttons">
+              <button id="editor-play-btn" class="btn btn-primary" title="Play test current level">PLAY LEVEL</button>
+              <button id="editor-undo-btn" class="btn btn-secondary" title="Undo last action (Ctrl+Z)">UNDO</button>
+              <button id="editor-redo-btn" class="btn btn-secondary" title="Redo last action (Ctrl+Y)">REDO</button>
+              <button id="editor-fill-btn" class="btn btn-secondary" title="Fill inside map with selected brush">FILL MAP</button>
+              <button id="editor-clear-btn" class="btn btn-secondary" title="Reset map to empty bounds">CLEAR MAP</button>
+              <button id="editor-export-btn" class="btn btn-secondary" title="Export level configuration to JSON">EXPORT JSON</button>
+              <button id="editor-import-btn" class="btn btn-secondary" title="Import level configuration from JSON">IMPORT JSON</button>
+            </div>
+            
+            <div class="json-area-container">
+              <label for="editor-json-area">Exported Level JSON:</label>
+              <textarea id="editor-json-area" readonly placeholder="Level JSON will appear here..."></textarea>
+            </div>
+          </div>
+        </div>
+        
+        <button id="editor-back-btn" class="btn btn-secondary back-btn" style="margin-top: 15px;">BACK</button>
+      </div>
+    </div>
+
+    <!-- Game HUD -->
+    <div id="game-hud" class="hud-container hidden">
+      <div class="hud-left glass-card-hud">
+        <div class="hud-avatar-box">
+          <img src="./character.jpg" alt="HUD Avatar" class="hud-avatar">
+        </div>
+        <div class="hud-health-container">
+          <span class="hud-label">HP</span>
+          <div class="health-bar-bg">
+            <div id="health-bar-fill" class="health-bar-fill"></div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="hud-center glass-card-hud">
+        <div class="hud-stat">
+          <span class="hud-icon">💎</span>
+          <span id="hud-coins" class="hud-value">00 / 00</span>
+        </div>
+        <div class="hud-divider"></div>
+        <div class="hud-stat">
+          <span class="hud-icon">⏱️</span>
+          <span id="hud-timer" class="hud-value">00:00</span>
+        </div>
+      </div>
+
+      <div class="hud-right glass-card-hud">
+        <div class="hud-level">
+          <span class="hud-label-small">SECTOR</span>
+          <span id="hud-level-num" class="hud-value-large">01</span>
+        </div>
+        <button id="hud-terminal-toggle" class="hud-terminal-btn" title="Open Admin Console">⌨️</button>
+      </div>
+    </div>
+    
+    <!-- Toolbar -->
+    <div id="game-toolbar" class="toolbar-container hidden">
+      <div class="toolbar-slot active" id="slot-0" data-slot="0" title="Unarmed (Fist)">
+        <span class="slot-key">1</span>
+        <span class="slot-icon">👊</span>
+      </div>
+      <div class="toolbar-slot hidden" id="slot-1" data-slot="1" title="Cyber Blaster">
+        <span class="slot-key">2</span>
+        <span class="slot-icon">🔫</span>
+      </div>
+    </div>
+
+    <!-- Admin Command Bar -->
+    <div id="admin-bar" class="admin-bar-container hidden">
+      <span class="admin-prompt">></span>
+      <input type="text" id="admin-input" placeholder="Type command (god, noclip, showpath, give gun, level 5, kill)..." autocomplete="off">
+    </div>
+
+    <!-- Pause Indicator Overlay (Small button or ESC reminder) -->
+    <div id="hud-pause-tip" class="hud-tip hidden">
+      <span>Press ESC or P to Pause | Tilde (`) for Console</span>
+    </div>
+
+    <!-- Game Canvas -->
+    <canvas id="game-canvas"></canvas>
+
+    <!-- On-screen controls for mobile/touch or testing -->
+    <div id="touch-controls" class="touch-controls-container hidden">
+      <div class="dpad">
+        <button id="touch-left" class="touch-btn">◀</button>
+        <button id="touch-right" class="touch-btn">▶</button>
+      </div>
+      <div class="action-buttons">
+        <button id="touch-shoot" class="touch-btn action-btn shoot-btn hidden">SHOOT</button>
+        <button id="touch-dash" class="touch-btn action-btn secondary">DASH</button>
+        <button id="touch-jump" class="touch-btn action-btn primary">JUMP</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Game Scripts -->
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

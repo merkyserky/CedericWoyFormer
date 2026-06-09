@@ -1,0 +1,17 @@
+{
+  "name": "cederic-woy-former",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^5.2.0"
+  },
+  "dependencies": {
+    "pathfinding": "^0.4.18"
+  }
+}
