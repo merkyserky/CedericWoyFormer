@@ -926,7 +926,7 @@ export function setupEditor(game) {
     };
     
     // Save to local storage custom worker URL if overridden, or default
-    const DEFAULT_WORKER_URL = 'https://cederic-woy-former-worker.venne.workers.dev';
+    const DEFAULT_WORKER_URL = '';
     const WORKER_URL = localStorage.getItem('cederic_custom_worker_url') || DEFAULT_WORKER_URL;
     
     const uploadBtn = document.getElementById('editor-upload-btn');

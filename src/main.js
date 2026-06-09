@@ -191,8 +191,8 @@ const communityTabBtn = document.getElementById('tab-community-btn');
 const campaignGrid = document.getElementById('level-buttons-grid');
 const communityGrid = document.getElementById('community-levels-grid');
 
-// Save to local storage custom worker URL if overridden, or default
-const DEFAULT_WORKER_URL = 'https://cederic-woy-former-worker.venne.workers.dev';
+// Default to relative path for Pages Functions, with support for custom overrides
+const DEFAULT_WORKER_URL = '';
 const WORKER_URL = localStorage.getItem('cederic_custom_worker_url') || DEFAULT_WORKER_URL;
 
 if (campaignTabBtn && communityTabBtn) {
