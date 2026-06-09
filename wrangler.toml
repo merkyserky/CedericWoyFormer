@@ -6,3 +6,7 @@ pages_build_output_dir = "dist"
 name = "MULTIPLAYER_ROOM"
 class_name = "MultiplayerRoom"
 script_name = "cederic-woy-former-worker"
+
+[[kv_namespaces]]
+binding = "LEVELS_KV"
+id = "c0fd083783704e59a6ff267ce223cfd4"

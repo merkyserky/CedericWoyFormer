@@ -4,7 +4,7 @@ compatibility_date = "2026-06-09"
 
 [[kv_namespaces]]
 binding = "LEVELS_KV"
-id = "YOUR_KV_NAMESPACE_ID_HERE" # User should replace this or let Wrangler create it
+id = "c0fd083783704e59a6ff267ce223cfd4" 
 
 [durable_objects]
 bindings = [
