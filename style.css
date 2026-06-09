@@ -1647,4 +1647,30 @@ body::before {
   display: none !important;
 }
 
+/* Multiplayer Lobby Styling */
+.lobby-form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  max-width: 400px;
+  margin: 0 auto;
+  text-align: left;
+}
+
+.color-picker-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.color-picker-wrapper input[type="color"] {
+  width: 50px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid var(--color-glass-border);
+  border-radius: 8px;
+  background: none;
+  cursor: pointer;
+}
+
 

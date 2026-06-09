@@ -1,7 +1,7 @@
-// Core Game Engine and Physics for CedericWoyFormer
 import { LEVELS, LEVEL_THEMES } from './levels.js';
 import { audio } from './audio.js';
 import { particles } from './particles.js';
+import { MultiplayerManager } from './multiplayer.js';
 import PF from 'pathfinding';
 
 export class GameEngine {
@@ -81,10 +81,16 @@ export class GameEngine {
     this.playerSex = 'male';
 
     // Sprite assets
-    this.playerHead = new Image();
-    this.playerHead.src = './character.jpg';
+    this.maleHeadImage = new Image();
+    this.maleHeadImage.src = './character.jpg';
+    this.femaleHeadImage = new Image();
+    this.femaleHeadImage.src = './female_avatar.png';
+    this.cyberHeadImage = new Image();
+    this.cyberHeadImage.src = './cyber_avatar.png';
+    
+    this.playerHead = this.maleHeadImage;
     this.headLoaded = false;
-    this.playerHead.onload = () => {
+    this.maleHeadImage.onload = () => {
       this.headLoaded = true;
     };
 
@@ -133,6 +139,10 @@ export class GameEngine {
     // Weapon slots state & mouse tracking
     this.selectedWeapon = 0; // 0 = unarmed, 1 = blaster
     this.mouse = { x: 0, y: 0 };
+    
+    // Multiplayer State
+    this.otherPlayers = {};
+    this.multiplayer = null; // Bound in main.js
     
     this.setupInputs();
   }
@@ -287,6 +297,9 @@ export class GameEngine {
     
     // Activate current UI overlays
     if (state === 'MENU') {
+      if (this.multiplayer) {
+        this.multiplayer.disconnect();
+      }
       document.getElementById('main-menu').classList.add('active');
       audio.init();
     } else if (state === 'PLAYING') {
@@ -301,6 +314,8 @@ export class GameEngine {
       }
       
       audio.init();
+    } else if (state === 'MULTIPLAYER_LOBBY') {
+      document.getElementById('multiplayer-menu').classList.add('active');
     } else if (state === 'PAUSED') {
       document.getElementById('pause-screen').classList.add('active');
     } else if (state === 'GAME_OVER') {
@@ -323,13 +338,13 @@ export class GameEngine {
     const lvl = LEVELS[levelIdx];
     
     // Update player head image based on selected sex
-    let imgSrc = './character.jpg';
     if (this.playerSex === 'female') {
-      imgSrc = './female_avatar.png';
+      this.playerHead = this.femaleHeadImage;
     } else if (this.playerSex === 'cyber') {
-      imgSrc = './cyber_avatar.png';
+      this.playerHead = this.cyberHeadImage;
+    } else {
+      this.playerHead = this.maleHeadImage;
     }
-    this.playerHead.src = imgSrc;
     
     // Gun status setup (Sector 5 directly gives the gun for convenience)
     if (levelIdx === 0) {
@@ -477,6 +492,7 @@ export class GameEngine {
         } else if (char === 'V') {
           // Beaver
           this.beavers.push({
+            id: `beaver-${r}-${c}`,
             x: px,
             y: py,
             vx: 60, // walks at 60px/s
@@ -683,6 +699,11 @@ export class GameEngine {
     this.updateEntities(dt);
     this.updateCamera(dt);
     this.updateHUD();
+
+    // Broadcast player updates to multiplayer socket
+    if (this.multiplayer && this.multiplayer.isConnected) {
+      this.multiplayer.sendMovementUpdate();
+    }
   }
 
   // Apply inputs and calculate movement vectors
@@ -1937,6 +1958,11 @@ export class GameEngine {
             this.tiles[r][c] = ' ';
             anyDestroyed = true;
             
+            // Broadcast block break
+            if (this.multiplayer && this.multiplayer.isConnected) {
+              this.multiplayer.sendBlockBreak(r, c);
+            }
+            
             // Spawn debris particles (yellowish/orange/brown crumbling particles)
             for (let i = 0; i < 8; i++) {
               particles.createExplosion(tileCenterX, tileCenterY, '#ffaa00', 8);
@@ -2149,6 +2175,9 @@ export class GameEngine {
     this.drawEnemies();
     this.drawBeavers();
     this.drawKangaroos();
+    
+    // Draw other online players
+    this.drawOtherPlayers();
     
     // Draw boss projectiles
     if (this.bossProjectiles && this.bossProjectiles.length > 0) {
@@ -3584,6 +3613,11 @@ export class GameEngine {
       width: 14,
       height: 4
     });
+
+    // Broadcast horizontal laser fire
+    if (this.multiplayer && this.multiplayer.isConnected) {
+      this.multiplayer.sendLaserFire(lx, ly, direction * 650, 0);
+    }
   }
 
   shootLaserTowardsMouse() {
@@ -3620,6 +3654,11 @@ export class GameEngine {
       height: 6,
       angle: Math.atan2(vy, vx)
     });
+
+    // Broadcast angled laser fire
+    if (this.multiplayer && this.multiplayer.isConnected) {
+      this.multiplayer.sendLaserFire(lx, ly, vx, vy);
+    }
   }
 
   updateLasers(dt) {
@@ -3778,22 +3817,24 @@ export class GameEngine {
     this.player.lasers.forEach((laser) => {
       this.ctx.save();
       const theme = this.getCurrentTheme();
+      const laserColor = laser.color || theme.primary;
+      
       this.ctx.shadowBlur = 8;
-      this.ctx.shadowColor = theme.primary;
+      this.ctx.shadowColor = laserColor;
       
       if (laser.angle !== undefined) {
         // Draw rotated laser capsule
         this.ctx.translate(laser.x, laser.y);
         this.ctx.rotate(laser.angle);
         
-        this.ctx.fillStyle = theme.primary;
+        this.ctx.fillStyle = laserColor;
         this.ctx.fillRect(-8, -2, 16, 4);
         
         this.ctx.fillStyle = '#ffffff';
         this.ctx.fillRect(-6, -1, 12, 2);
       } else {
         // Fallback for old horizontal lasers
-        this.ctx.fillStyle = theme.primary;
+        this.ctx.fillStyle = laserColor;
         this.ctx.fillRect(laser.x, laser.y, laser.width, laser.height);
         
         this.ctx.fillStyle = '#ffffff';
@@ -4176,6 +4217,9 @@ export class GameEngine {
         this.beavers.splice(idx, 1);
       }
       audio.playHit(); // play pickup sound
+      if (this.multiplayer && this.multiplayer.isConnected) {
+        this.multiplayer.sendBeaverAction('pickup', nearestBeaver.id, nearestBeaver.x, nearestBeaver.y, nearestBeaver.vx, nearestBeaver.vy);
+      }
     }
   }
 
@@ -4196,6 +4240,9 @@ export class GameEngine {
     this.player.heldBeaver = null;
     this.player.isChargingThrow = false;
     audio.playDash(); // drop sound
+    if (this.multiplayer && this.multiplayer.isConnected) {
+      this.multiplayer.sendBeaverAction('drop', beaver.id, beaver.x, beaver.y, beaver.vx, beaver.vy);
+    }
   }
 
   throwBeaver() {
@@ -4226,6 +4273,9 @@ export class GameEngine {
     this.player.heldBeaver = null;
     this.player.isChargingThrow = false;
     audio.playDash(); // throw sound whoosh
+    if (this.multiplayer && this.multiplayer.isConnected) {
+      this.multiplayer.sendBeaverAction('throw', beaver.id, beaver.x, beaver.y, beaver.vx, beaver.vy);
+    }
   }
 
   drawTrajectoryCurve() {
@@ -4270,5 +4320,235 @@ export class GameEngine {
       }
     }
     this.ctx.restore();
+  }
+
+  drawOtherPlayers() {
+    if (!this.otherPlayers) return;
+    
+    for (const id in this.otherPlayers) {
+      const p = this.otherPlayers[id];
+      if (!p.isAlive) continue;
+      
+      const width = 32;
+      const height = 48;
+      
+      // Render dash ghost trails
+      if (!p.ghosts) p.ghosts = [];
+      if (p.isDashing) {
+        const tilt = p.vx * 0.0006;
+        p.ghosts.push({
+          x: p.x,
+          y: p.y,
+          squishX: p.squishX || 1,
+          squishY: p.squishY || 1,
+          tilt: tilt,
+          facingDir: p.facingDir || 1,
+          alpha: 0.35
+        });
+        if (p.ghosts.length > 5) {
+          p.ghosts.shift();
+        }
+      } else {
+        p.ghosts.forEach(g => g.alpha -= 0.04);
+        p.ghosts = p.ghosts.filter(g => g.alpha > 0);
+      }
+
+      p.ghosts.forEach((ghost) => {
+        this.ctx.save();
+        this.ctx.translate(ghost.x + width / 2, ghost.y + height);
+        this.ctx.scale(ghost.squishX, ghost.squishY);
+        this.ctx.rotate(ghost.tilt);
+        
+        this.ctx.fillStyle = p.color || '#00f2fe';
+        this.ctx.globalAlpha = ghost.alpha;
+        
+        this.ctx.fillRect(-12, -4, 8, 4);
+        this.ctx.fillRect(4, -4, 8, 4);
+        this.ctx.fillRect(-10, -18, 20, 14);
+        this.ctx.fillStyle = '#ffffff';
+        this.ctx.fillRect(ghost.facingDir > 0 ? 0 : -8, -15, 8, 8);
+        this.ctx.restore();
+      });
+      
+      this.ctx.save();
+      
+      // Translate to character's bottom-center coordinates
+      this.ctx.translate(p.x + width / 2, p.y + height);
+      this.ctx.scale(p.squishX || 1, p.squishY || 1);
+      
+      let tilt = (p.vx || 0) * 0.0006;
+      if (Math.abs(p.vx || 0) > 10) {
+        tilt += Math.sin(Date.now() / 60) * 0.08;
+      }
+      this.ctx.rotate(tilt);
+      
+      // Feet animation
+      const walkTimer = Date.now() / 100;
+      let footYOffset1 = 0;
+      let footYOffset2 = 0;
+      if (Math.abs(p.vx || 0) > 10) {
+        footYOffset1 = Math.sin(walkTimer) * 5;
+        footYOffset2 = -Math.sin(walkTimer) * 5;
+      }
+      
+      this.ctx.fillStyle = '#222538';
+      this.ctx.strokeStyle = p.color || '#00f2fe';
+      this.ctx.lineWidth = 2;
+      this.ctx.shadowBlur = 6;
+      this.ctx.shadowColor = p.color || '#00f2fe';
+      
+      // Left Foot
+      this.ctx.fillRect(-12, -4 + footYOffset1, 8, 4);
+      this.ctx.strokeRect(-12, -4 + footYOffset1, 8, 4);
+      // Right Foot
+      this.ctx.fillRect(4, -4 + footYOffset2, 8, 4);
+      this.ctx.strokeRect(4, -4 + footYOffset2, 8, 4);
+      
+      // Spacesuit body
+      this.ctx.fillStyle = 'rgba(24, 25, 40, 0.95)';
+      this.ctx.fillRect(-10, -18, 20, 14);
+      this.ctx.strokeRect(-10, -18, 20, 14);
+      
+      // Cyber suit emblem
+      this.ctx.fillStyle = p.color || '#00f2fe';
+      this.ctx.fillRect(-4, -13, 8, 4);
+      
+      this.ctx.restore();
+      
+      // Draw Head
+      this.ctx.save();
+      const headSize = 32;
+      const hx = p.x + (width - headSize) / 2;
+      const hy = p.y;
+      
+      this.ctx.translate(hx + headSize/2, hy + headSize/2);
+      this.ctx.scale(p.squishX || 1, p.squishY || 1);
+      this.ctx.rotate(tilt);
+      
+      let headImg = this.maleHeadImage;
+      if (p.sex === 'female') {
+        headImg = this.femaleHeadImage;
+      } else if (p.sex === 'cyber') {
+        headImg = this.cyberHeadImage;
+      }
+      
+      if (this.headLoaded) {
+        this.ctx.save();
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, headSize / 2, 0, Math.PI * 2);
+        this.ctx.clip();
+        this.ctx.drawImage(headImg, -headSize / 2, -headSize / 2, headSize, headSize);
+        this.ctx.restore();
+      } else {
+        // Fallback Matrix Head
+        this.ctx.fillStyle = p.color || '#00f2fe';
+        this.ctx.strokeStyle = '#fff';
+        this.ctx.lineWidth = 2.5;
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, headSize / 2, 0, Math.PI * 2);
+        this.ctx.fill();
+        this.ctx.stroke();
+      }
+      
+      // Visor neon frame
+      this.ctx.strokeStyle = p.color || '#00f2fe';
+      this.ctx.lineWidth = 2.5;
+      this.ctx.shadowBlur = 10;
+      this.ctx.shadowColor = p.color || '#00f2fe';
+      this.ctx.beginPath();
+      this.ctx.arc(0, 0, headSize / 2 + 1, 0, Math.PI * 2);
+      this.ctx.stroke();
+      
+      this.ctx.restore();
+      
+      // Render custom nickname text floating centered above head
+      this.ctx.save();
+      this.ctx.font = '8px "Press Start 2P", Courier, monospace';
+      this.ctx.textAlign = 'center';
+      this.ctx.fillStyle = '#ffffff';
+      this.ctx.shadowBlur = 6;
+      this.ctx.shadowColor = p.color || '#00f2fe';
+      this.ctx.fillText(p.name || 'Cederic', p.x + width / 2, p.y - 12);
+      this.ctx.restore();
+    }
+  }
+
+  spawnRemoteLaser(x, y, vx, vy, color) {
+    if (!this.player.lasers) this.player.lasers = [];
+    audio.playLaserShoot();
+    const angle = Math.atan2(vy, vx);
+    this.player.lasers.push({
+      x,
+      y,
+      vx,
+      vy,
+      width: 14,
+      height: 4,
+      angle: angle,
+      color: color
+    });
+  }
+
+  breakDestructibleBlockLocally(r, c) {
+    if (this.tiles && this.tiles[r] && this.tiles[r][c] === 'D') {
+      this.tiles[r][c] = ' ';
+      const tileCenterX = c * this.tileSize + this.tileSize / 2;
+      const tileCenterY = r * this.tileSize + this.tileSize / 2;
+      for (let i = 0; i < 8; i++) {
+        particles.createExplosion(tileCenterX, tileCenterY, '#ffaa00', 8);
+      }
+      this.preRenderTilemap();
+    }
+  }
+
+  syncRemoteBeaverAction(actionType, id, x, y, vx, vy) {
+    if (actionType === 'pickup') {
+      const idx = this.beavers.findIndex(b => b.id === id);
+      if (idx > -1) {
+        this.beavers.splice(idx, 1);
+      }
+      audio.playHit();
+    } else if (actionType === 'drop' || actionType === 'throw') {
+      const idx = this.beavers.findIndex(b => b.id === id);
+      if (idx > -1) {
+        const beaver = this.beavers[idx];
+        beaver.x = x;
+        beaver.y = y;
+        beaver.vx = vx;
+        beaver.vy = vy;
+        beaver.isThrown = true;
+        beaver.thrownTimer = actionType === 'throw' ? 3.0 : 2.0;
+        beaver.isGrounded = false;
+        beaver.spinAngle = 0;
+      } else {
+        this.beavers.push({
+          id: id,
+          x: x,
+          y: y,
+          vx: vx,
+          vy: vy,
+          width: 32,
+          height: 24,
+          dir: vx >= 0 ? 1 : -1,
+          chewTimer: 0,
+          chewCooldown: 0,
+          isGrounded: false,
+          alive: true,
+          isThrown: true,
+          thrownTimer: actionType === 'throw' ? 3.0 : 2.0,
+          spinAngle: 0
+        });
+      }
+      audio.playDash();
+    }
+  }
+
+  triggerSpawnGlow(id) {
+    const p = this.otherPlayers[id];
+    if (p) {
+      for (let i = 0; i < 20; i++) {
+        particles.createExplosion(p.x + 16, p.y + 24, p.color || '#00f2fe', 12);
+      }
+    }
   }
 }

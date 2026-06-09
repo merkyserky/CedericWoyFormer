@@ -3,9 +3,11 @@ import { GameEngine } from './game.js';
 import { audio } from './audio.js';
 import { LEVELS } from './levels.js';
 import { setupEditor } from './editor.js';
+import { MultiplayerManager } from './multiplayer.js';
 
 // Initialize Game Engine
 const game = new GameEngine('game-canvas');
+game.multiplayer = new MultiplayerManager(game);
 setupEditor(game);
 
 // Sex Selection Handlers
@@ -122,6 +124,45 @@ document.getElementById('sound-toggle').addEventListener('click', () => {
   soundIcon.innerText = enabled ? '🔊' : '🔇';
   const toggleBtn = document.getElementById('sound-toggle');
   toggleBtn.innerHTML = `<span id="sound-icon">${enabled ? '🔊' : '🔇'}</span> Music & SFX: ${enabled ? 'ON' : 'OFF'}`;
+});
+
+// Multiplayer Screen Triggers
+document.getElementById('multiplayer-btn').addEventListener('click', () => {
+  audio.init();
+  game.setGameState('MULTIPLAYER_LOBBY');
+});
+
+document.getElementById('back-to-menu-from-mp').addEventListener('click', () => {
+  game.setGameState('MENU');
+});
+
+document.getElementById('join-lobby-btn').addEventListener('click', () => {
+  audio.init();
+  const nickname = document.getElementById('mp-nickname').value || 'Cederic';
+  const roomName = document.getElementById('mp-room').value || 'CYBER-ROOM';
+  const color = document.getElementById('mp-color').value || '#00f2fe';
+  const serverUrl = document.getElementById('mp-server-url').value || 'ws://localhost:8080';
+  const sex = game.playerSex;
+  
+  const joinBtn = document.getElementById('join-lobby-btn');
+  joinBtn.innerText = 'CONNECTING...';
+  joinBtn.disabled = true;
+  
+  game.multiplayer.connect(serverUrl, nickname, sex, color, roomName,
+    (playerId) => {
+      joinBtn.innerText = 'JOIN SERVER';
+      joinBtn.disabled = false;
+      game.triggerLevelTransition(() => {
+        game.loadLevel(0);
+        game.setGameState('PLAYING');
+      });
+    },
+    (err) => {
+      alert('Failed to connect to multiplayer server: ' + err.message);
+      joinBtn.innerText = 'JOIN SERVER';
+      joinBtn.disabled = false;
+    }
+  );
 });
 
 // Back buttons

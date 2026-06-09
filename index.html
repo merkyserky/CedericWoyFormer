@@ -42,6 +42,7 @@
             <span class="btn-glow"></span>
           </button>
           <button id="level-select-btn" class="btn btn-secondary">LEVELS</button>
+          <button id="multiplayer-btn" class="btn btn-secondary">MULTIPLAYER</button>
           <button id="how-to-play-btn" class="btn btn-secondary">CONTROLS</button>
           <button id="level-editor-btn" class="btn btn-secondary">LEVEL EDITOR</button>
         </div>
@@ -50,6 +51,42 @@
           <button id="sound-toggle" class="btn-icon">
             <span id="sound-icon">🔊</span> Music & SFX: ON
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Multiplayer Menu Screen -->
+    <div id="multiplayer-menu" class="screen">
+      <div class="menu-content glass-card">
+        <h2 class="screen-title">MULTIPLAYER LOBBY</h2>
+        
+        <div class="lobby-form">
+          <div class="setting-item">
+            <label for="mp-nickname">NICKNAME:</label>
+            <input type="text" id="mp-nickname" value="Cederic" maxlength="15">
+          </div>
+          
+          <div class="setting-item">
+            <label for="mp-room">ROOM NAME:</label>
+            <input type="text" id="mp-room" value="CYBER-ROOM" maxlength="20">
+          </div>
+          
+          <div class="setting-item">
+            <label for="mp-color">CHOOSE COLOR:</label>
+            <div class="color-picker-wrapper">
+              <input type="color" id="mp-color" value="#00f2fe">
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <label for="mp-server-url">SERVER URL:</label>
+            <input type="text" id="mp-server-url" value="ws://localhost:8080" placeholder="ws://localhost:8080">
+          </div>
+        </div>
+        
+        <div class="menu-buttons" style="margin-top: 20px;">
+          <button id="join-lobby-btn" class="btn btn-primary">JOIN SERVER</button>
+          <button id="back-to-menu-from-mp" class="btn btn-secondary back-btn">BACK</button>
         </div>
       </div>
     </div>
