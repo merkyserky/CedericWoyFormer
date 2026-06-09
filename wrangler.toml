@@ -1,10 +1,10 @@
-name = "cederic-woy-former-worker"
-main = "src/index.js"
+name = "cedericwoyformer"
 compatibility_date = "2026-06-09"
+pages_build_output_dir = "dist"
 
 [[kv_namespaces]]
 binding = "LEVELS_KV"
-id = "YOUR_KV_NAMESPACE_ID_HERE" # User should replace this or let Wrangler create it
+id = "YOUR_KV_NAMESPACE_ID_HERE"
 
 [durable_objects]
 bindings = [

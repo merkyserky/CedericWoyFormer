@@ -17,7 +17,9 @@ export class MultiplayerManager {
     this.disconnect();
     
     try {
-      this.socket = new WebSocket(serverUrl);
+      const separator = serverUrl.includes('?') ? '&' : '?';
+      const connectionUrl = `${serverUrl}${separator}room=${encodeURIComponent(roomName)}`;
+      this.socket = new WebSocket(connectionUrl);
     } catch (e) {
       if (onError) onError(e);
       return;
