@@ -3730,27 +3730,29 @@ export class GameEngine {
           
           this.player.lasers.splice(i, 1);
           
-          if (this.boss.state === 'DESPERATION') {
-            // Phase 3: Direct HP damage!
-            this.boss.health--;
-            this.boss.hitCooldown = 0.8;
-            audio.playBossHit();
-            particles.createBossGlitchParticles(this.boss.x + this.boss.width/2, this.boss.y);
-            this.camera.shakeTimer = 0.3;
-            this.camera.shakeIntensity = 8;
-            
-            if (this.boss.health <= 0) {
-              this.boss.state = 'DEFEATED';
-              this.boss.stateTimer = 1.8;
-              this.boss.vy = -200;
-              audio.playWin();
-              this.exitPortal = {
-                x: 12.5 * this.tileSize,
-                y: 7.5 * this.tileSize,
-                radius: 25
-              };
+          if (this.boss.state === 'DESPERATION' || this.boss.state === 'STUNNED') {
+            // Direct HP damage!
+            if (this.boss.hitCooldown <= 0) {
+              this.boss.health--;
+              this.boss.hitCooldown = 0.8;
+              audio.playBossHit();
+              particles.createBossGlitchParticles(this.boss.x + this.boss.width/2, this.boss.y);
+              this.camera.shakeTimer = 0.3;
+              this.camera.shakeIntensity = 8;
+              
+              if (this.boss.health <= 0) {
+                this.boss.state = 'DEFEATED';
+                this.boss.stateTimer = 1.8;
+                this.boss.vy = -200;
+                audio.playWin();
+                this.exitPortal = {
+                  x: 12.5 * this.tileSize,
+                  y: 7.5 * this.tileSize,
+                  radius: 25
+                };
+              }
             }
-          } else if (this.boss.state !== 'STUNNED' && this.boss.hitCooldown <= 0) {
+          } else if (this.boss.hitCooldown <= 0) {
             // Phase 1 & 2: Shield damage!
             this.boss.shield = Math.max(0, this.boss.shield - 10);
             this.boss.hitCooldown = 0.15; // prevent spam
@@ -3763,9 +3765,6 @@ export class GameEngine {
               this.boss.stateTimer = 2.5;
               this.boss.shield = this.boss.maxShield;
               audio.playShieldBreak();
-              this.camera.shakeTimer = 0.5;
-              this.camera.shakeIntensity = 10;
-              particles.createBossShockwave(this.boss.x + this.boss.width/2, this.boss.y + this.boss.height/2);
             }
           }
         }
